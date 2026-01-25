@@ -1,99 +1,173 @@
-import {App, Editor, MarkdownView, Modal, Notice, Plugin} from 'obsidian';
-import {DEFAULT_SETTINGS, MyPluginSettings, SampleSettingTab} from "./settings";
+import { Notice, Plugin, TFile } from "obsidian";
+import { DEFAULT_SETTINGS, type ReviewSettings, type CustomRange } from "./types";
+import { ReviewSettingsTab } from "./ui/settingsTab";
+import { PeriodModal, type PeriodModalResult } from "./ui/periodModal";
+import { ObsidianVaultAdapter } from "./vaultAdapter";
+import { resolvePeriod } from "./period";
+import { scanNotes } from "./scan";
+import { buildEvidencePack } from "./evidence";
+import { buildPrompt } from "./prompt";
+import { callLLM, LLMError } from "./llmClient";
+import { renderReviewNote, getWeekStart } from "./render";
+import { resolveFilename } from "./filenames";
 
-// Remember to rename these classes and interfaces!
-
-export default class MyPlugin extends Plugin {
-	settings: MyPluginSettings;
+export default class ReviewGeneratorPlugin extends Plugin {
+	settings: ReviewSettings = DEFAULT_SETTINGS;
 
 	async onload() {
 		await this.loadSettings();
 
-		// This creates an icon in the left ribbon.
-		this.addRibbonIcon('dice', 'Sample', (evt: MouseEvent) => {
-			// Called when the user clicks the icon.
-			new Notice('This is a notice!');
-		});
-
-		// This adds a status bar item to the bottom of the app. Does not work on mobile apps.
-		const statusBarItemEl = this.addStatusBarItem();
-		statusBarItemEl.setText('Status bar text');
-
-		// This adds a simple command that can be triggered anywhere
+		// Add the generate review command
 		this.addCommand({
-			id: 'open-modal-simple',
-			name: 'Open modal (simple)',
-			callback: () => {
-				new SampleModal(this.app).open();
-			}
-		});
-		// This adds an editor command that can perform some operation on the current editor instance
-		this.addCommand({
-			id: 'replace-selected',
-			name: 'Replace selected content',
-			editorCallback: (editor: Editor, view: MarkdownView) => {
-				editor.replaceSelection('Sample editor command');
-			}
-		});
-		// This adds a complex command that can check whether the current state of the app allows execution of the command
-		this.addCommand({
-			id: 'open-modal-complex',
-			name: 'Open modal (complex)',
-			checkCallback: (checking: boolean) => {
-				// Conditions to check
-				const markdownView = this.app.workspace.getActiveViewOfType(MarkdownView);
-				if (markdownView) {
-					// If checking is true, we're simply "checking" if the command can be run.
-					// If checking is false, then we want to actually perform the operation.
-					if (!checking) {
-						new SampleModal(this.app).open();
-					}
-
-					// This command will only show up in Command Palette when the check function returns true
-					return true;
-				}
-				return false;
-			}
+			id: "generate-review",
+			name: "Generate review",
+			callback: () => this.generateReview(),
 		});
 
-		// This adds a settings tab so the user can configure various aspects of the plugin
-		this.addSettingTab(new SampleSettingTab(this.app, this));
-
-		// If the plugin hooks up any global DOM events (on parts of the app that doesn't belong to this plugin)
-		// Using this function will automatically remove the event listener when this plugin is disabled.
-		this.registerDomEvent(document, 'click', (evt: MouseEvent) => {
-			new Notice("Click");
-		});
-
-		// When registering intervals, this function will automatically clear the interval when the plugin is disabled.
-		this.registerInterval(window.setInterval(() => console.log('setInterval'), 5 * 60 * 1000));
-
+		// Add settings tab
+		this.addSettingTab(new ReviewSettingsTab(this.app, this));
 	}
 
 	onunload() {
+		// Cleanup if needed
 	}
 
 	async loadSettings() {
-		this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData() as Partial<MyPluginSettings>);
+		const data = (await this.loadData()) as Partial<ReviewSettings> | null;
+		this.settings = Object.assign({}, DEFAULT_SETTINGS, data);
+		// Ensure nested objects are properly merged
+		if (data?.llm) {
+			this.settings.llm = Object.assign({}, DEFAULT_SETTINGS.llm, data.llm);
+		}
 	}
 
 	async saveSettings() {
 		await this.saveData(this.settings);
 	}
-}
 
-class SampleModal extends Modal {
-	constructor(app: App) {
-		super(app);
+	private async generateReview() {
+		const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+		const now = new Date();
+
+		try {
+			// Step 1: Get period selection
+			let preset = this.settings.defaultPeriodPreset;
+			let customRange: CustomRange | undefined;
+
+			if (this.settings.promptForPeriodOnRun) {
+				const modalResult = await this.showPeriodModal();
+				if (!modalResult) {
+					// User cancelled
+					return;
+				}
+
+				preset = modalResult.preset;
+				customRange = modalResult.customRange;
+
+				// Save as default if requested
+				if (modalResult.saveAsDefault) {
+					this.settings.defaultPeriodPreset = preset;
+					if (customRange) {
+						this.settings.customStartDate = customRange.start.toISOString();
+						this.settings.customEndDate = customRange.end.toISOString();
+					}
+					await this.saveSettings();
+				}
+			} else if (preset === "custom") {
+				// Use saved custom dates
+				if (this.settings.customStartDate && this.settings.customEndDate) {
+					customRange = {
+						start: new Date(this.settings.customStartDate),
+						end: new Date(this.settings.customEndDate),
+					};
+				} else {
+					new Notice(
+						"Custom period selected but no dates configured. Please update settings."
+					);
+					return;
+				}
+			}
+
+			// Step 2: Resolve period
+			new Notice("Generating review...");
+
+			const period = resolvePeriod(preset, customRange, now, timezone);
+
+			// Step 3: Scan notes
+			const vault = new ObsidianVaultAdapter(this.app);
+			const notes = await scanNotes(
+				vault,
+				this.settings.foldersToScan,
+				period.start,
+				period.end
+			);
+
+			if (notes.length === 0) {
+				new Notice("No notes found for the selected period.");
+				return;
+			}
+
+			// Step 4: Build evidence pack
+			const evidence = buildEvidencePack(
+				notes,
+				this.settings.maxNotes,
+				this.settings.maxCharsPerNote
+			);
+
+			// Step 5: Build prompt and call LLM
+			const prompt = buildPrompt(evidence, period, this.settings.systemPromptOverride);
+			const llmResponse = await callLLM(this.settings.llm, prompt);
+
+			// Step 6: Render the review note
+			const metadata = {
+				weekStart: getWeekStart(period.start),
+				periodStart: period.start.toISOString(),
+				periodEnd: period.end.toISOString(),
+				periodPreset: period.preset,
+				generatedAt: now.toISOString(),
+				scannedFolders:
+					this.settings.foldersToScan.length > 0
+						? this.settings.foldersToScan
+						: ["(entire vault)"],
+				model: this.settings.llm.model,
+			};
+
+			const noteContent = renderReviewNote(llmResponse, period, metadata);
+
+			// Step 7: Create the file
+			const existingFiles = (await vault.listMarkdownFiles()).map((f) => f.path);
+			const filename = resolveFilename(this.settings.outputFolder, now, existingFiles);
+
+			await vault.createFile(filename, noteContent);
+
+			// Success!
+			new Notice(`Review created: ${filename}`);
+
+			// Open the new file
+			const file = this.app.vault.getAbstractFileByPath(filename);
+			if (file instanceof TFile) {
+				await this.app.workspace.getLeaf().openFile(file);
+			}
+		} catch (error) {
+			if (error instanceof LLMError) {
+				new Notice(`LLM Error: ${error.message}`);
+			} else if (error instanceof Error) {
+				new Notice(`Error: ${error.message}`);
+			} else {
+				new Notice("An unexpected error occurred.");
+			}
+			console.error("Review generation failed:", error);
+		}
 	}
 
-	onOpen() {
-		let {contentEl} = this;
-		contentEl.setText('Woah!');
-	}
-
-	onClose() {
-		const {contentEl} = this;
-		contentEl.empty();
+	private showPeriodModal(): Promise<PeriodModalResult | null> {
+		return new Promise((resolve) => {
+			const modal = new PeriodModal(
+				this.app,
+				this.settings.defaultPeriodPreset,
+				(result) => resolve(result)
+			);
+			modal.open();
+		});
 	}
 }

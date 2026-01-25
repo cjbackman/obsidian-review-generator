@@ -1,90 +1,108 @@
-# Obsidian Sample Plugin
+# Weekly Review Generator
 
-This is a sample plugin for Obsidian (https://obsidian.md).
+An Obsidian plugin that generates weekly review notes using an LLM (supports Ollama and compatible APIs).
 
-This project uses TypeScript to provide type checking and documentation.
-The repo depends on the latest plugin API (obsidian.d.ts) in TypeScript Definition format, which contains TSDoc comments describing what it does.
+## Features
 
-This sample plugin demonstrates some of the basic functionality the plugin API can do.
-- Adds a ribbon icon, which shows a Notice when clicked.
-- Adds a command "Open modal (simple)" which opens a Modal.
-- Adds a plugin setting tab to the settings page.
-- Registers a global click event and output 'click' to the console.
-- Registers a global interval which logs 'setInterval' to the console.
+- **Automatic note selection**: Scans notes modified during a configurable review period
+- **Flexible time periods**: Current week, current month, last 7 days, last 30 days, or custom range
+- **LLM-powered summaries**: Generates a summary, notable work highlights, and exactly 3 priorities
+- **Configurable folders**: Scan specific folders or your entire vault
+- **New file every run**: Creates a unique review note each time
 
-## First time developing plugins?
+## Usage
 
-Quick starting guide for new plugin devs:
+1. Open the command palette (Cmd/Ctrl + P)
+2. Run "Weekly Review: Generate review"
+3. Select your review period (if prompted)
+4. Wait for the LLM to generate your review
 
-- Check if [someone already developed a plugin for what you want](https://obsidian.md/plugins)! There might be an existing plugin similar enough that you can partner up with.
-- Make a copy of this repo as a template with the "Use this template" button (login to GitHub if you don't see it).
-- Clone your repo to a local development folder. For convenience, you can place this folder in your `.obsidian/plugins/your-plugin-name` folder.
-- Install NodeJS, then run `npm i` in the command line under your repo folder.
-- Run `npm run dev` to compile your plugin from `main.ts` to `main.js`.
-- Make changes to `main.ts` (or create new `.ts` files). Those changes should be automatically compiled into `main.js`.
-- Reload Obsidian to load the new version of your plugin.
-- Enable plugin in settings window.
-- For updates to the Obsidian API run `npm update` in the command line under your repo folder.
+The plugin creates a new note in your configured output folder with the format:
+`YYYY-MM-DD Weekly Review.md`
 
-## Releasing new releases
+## Configuration
 
-- Update your `manifest.json` with your new version number, such as `1.0.1`, and the minimum Obsidian version required for your latest release.
-- Update your `versions.json` file with `"new-plugin-version": "minimum-obsidian-version"` so older versions of Obsidian can download an older version of your plugin that's compatible.
-- Create new GitHub release using your new version number as the "Tag version". Use the exact version number, don't include a prefix `v`. See here for an example: https://github.com/obsidianmd/obsidian-sample-plugin/releases
-- Upload the files `manifest.json`, `main.js`, `styles.css` as binary attachments. Note: The manifest.json file must be in two places, first the root path of your repository and also in the release.
-- Publish the release.
+### Folders
 
-> You can simplify the version bump process by running `npm version patch`, `npm version minor` or `npm version major` after updating `minAppVersion` manually in `manifest.json`.
-> The command will bump version in `manifest.json` and `package.json`, and add the entry for the new version to `versions.json`
+| Setting | Description | Default |
+|---------|-------------|---------|
+| Folders to scan | Comma-separated list of folders to include | (entire vault) |
+| Output folder | Where review notes are created | `Weekly Reviews` |
 
-## Adding your plugin to the community plugin list
+### Review Period
 
-- Check the [plugin guidelines](https://docs.obsidian.md/Plugins/Releasing/Plugin+guidelines).
-- Publish an initial version.
-- Make sure you have a `README.md` file in the root of your repo.
-- Make a pull request at https://github.com/obsidianmd/obsidian-releases to add your plugin.
+| Setting | Description | Default |
+|---------|-------------|---------|
+| Default period preset | The default time range | Current week |
+| Prompt for period on run | Show selection dialog each time | Yes |
 
-## How to use
+### LLM Configuration (Ollama)
 
-- Clone this repo.
-- Make sure your NodeJS is at least v16 (`node --version`).
-- `npm i` or `yarn` to install dependencies.
-- `npm run dev` to start compilation in watch mode.
+This plugin is designed to work with [Ollama](https://ollama.ai/) but supports any compatible API.
 
-## Manually installing the plugin
+| Setting | Description | Default |
+|---------|-------------|---------|
+| Base URL | LLM API base URL | `http://localhost:11434` |
+| Endpoint path | API endpoint | `/api/chat` |
+| Model name | Model to use | `llama3.1` |
+| Temperature | Randomness (0-1) | 0.2 |
+| Max tokens | Response length limit | 1000 |
+| Timeout | Request timeout in seconds | 60 |
 
-- Copy over `main.js`, `styles.css`, `manifest.json` to your vault `VaultFolder/.obsidian/plugins/your-plugin-id/`.
+### Payload Limits
 
-## Improve code quality with eslint
-- [ESLint](https://eslint.org/) is a tool that analyzes your code to quickly find problems. You can run ESLint against your plugin to find common bugs and ways to improve your code. 
-- This project already has eslint preconfigured, you can invoke a check by running`npm run lint`
-- Together with a custom eslint [plugin](https://github.com/obsidianmd/eslint-plugin) for Obsidan specific code guidelines.
-- A GitHub action is preconfigured to automatically lint every commit on all branches.
+| Setting | Description | Default |
+|---------|-------------|---------|
+| Max notes | Maximum notes to include | 50 |
+| Max chars per note | Excerpt length limit | 6000 |
+| System prompt override | Custom system prompt | (none) |
 
-## Funding URL
+## Setting up Ollama
 
-You can include funding URLs where people who use your plugin can financially support it.
+1. Install Ollama from [ollama.ai](https://ollama.ai/)
+2. Pull a model: `ollama pull llama3.1`
+3. Ensure Ollama is running: `ollama serve`
+4. Configure the plugin settings (defaults should work)
 
-The simple way is to set the `fundingUrl` field to your link in your `manifest.json` file:
+## Output Format
 
-```json
-{
-    "fundingUrl": "https://buymeacoffee.com"
-}
+Each review note includes:
+
+**Frontmatter:**
+- `week_start`: Monday of the review week
+- `period_start`/`period_end`: Exact review period
+- `period_preset`: Which preset was used
+- `generated_at`: Generation timestamp
+- `scanned_folders`: Which folders were included
+- `model`: LLM model used
+
+**Sections:**
+- Weekly summary
+- Notable work
+- Priorities for next week (exactly 3)
+- Notes reviewed
+
+## Common Errors
+
+| Error | Solution |
+|-------|----------|
+| "Network error" | Check that Ollama is running (`ollama serve`) |
+| "LLM request failed: 404" | Verify the model is installed (`ollama list`) |
+| "No notes found" | Check your folder settings and date range |
+| Timeout errors | Increase timeout in settings, or use a smaller model |
+
+## Development
+
+```bash
+npm install
+npm run dev     # Watch mode
+npm run build   # Production build
+npm run test    # Run tests
+npm run lint    # Lint code
 ```
 
-If you have multiple URLs, you can also do:
+Pre-commit hooks run lint, test, and build automatically.
 
-```json
-{
-    "fundingUrl": {
-        "Buy Me a Coffee": "https://buymeacoffee.com",
-        "GitHub Sponsor": "https://github.com/sponsors",
-        "Patreon": "https://www.patreon.com/"
-    }
-}
-```
+## License
 
-## API Documentation
-
-See https://docs.obsidian.md
+0-BSD
