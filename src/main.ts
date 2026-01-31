@@ -128,7 +128,7 @@ export default class ReviewGeneratorPlugin extends Plugin {
 
 			// Step 6: Render the review note
 			const metadata = {
-				weekStart: getWeekStart(period.start),
+				weekStart: getWeekStart(period.start, timezone),
 				periodStart: period.start.toISOString(),
 				periodEnd: period.end.toISOString(),
 				periodPreset: period.preset,
@@ -144,7 +144,7 @@ export default class ReviewGeneratorPlugin extends Plugin {
 
 			// Step 7: Create the file
 			const existingFiles = (await vault.listMarkdownFiles()).map((f) => f.path);
-			const filename = resolveFilename(this.settings.outputFolder, now, existingFiles);
+			const filename = resolveFilename(this.settings.outputFolder, now, existingFiles, timezone);
 
 			await vault.createFile(filename, noteContent);
 

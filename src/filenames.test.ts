@@ -7,7 +7,7 @@ describe("resolveFilename", () => {
 			const date = new Date("2025-01-15T12:00:00Z");
 			const existingFiles: string[] = [];
 
-			const result = resolveFilename("Weekly Reviews", date, existingFiles);
+			const result = resolveFilename("Weekly Reviews", date, existingFiles, "UTC");
 
 			expect(result).toBe("Weekly Reviews/2025-01-15 Weekly Review.md");
 		});
@@ -16,7 +16,7 @@ describe("resolveFilename", () => {
 			const date = new Date("2025-01-15T12:00:00Z");
 			const existingFiles: string[] = [];
 
-			const result = resolveFilename("Reviews/Weekly", date, existingFiles);
+			const result = resolveFilename("Reviews/Weekly", date, existingFiles, "UTC");
 
 			expect(result).toBe("Reviews/Weekly/2025-01-15 Weekly Review.md");
 		});
@@ -25,7 +25,7 @@ describe("resolveFilename", () => {
 			const date = new Date("2025-01-15T12:00:00Z");
 			const existingFiles: string[] = [];
 
-			const result = resolveFilename("Weekly Reviews/", date, existingFiles);
+			const result = resolveFilename("Weekly Reviews/", date, existingFiles, "UTC");
 
 			expect(result).toBe("Weekly Reviews/2025-01-15 Weekly Review.md");
 		});
@@ -36,7 +36,7 @@ describe("resolveFilename", () => {
 			const date = new Date("2025-01-15T12:00:00Z");
 			const existingFiles = ["Weekly Reviews/2025-01-15 Weekly Review.md"];
 
-			const result = resolveFilename("Weekly Reviews", date, existingFiles);
+			const result = resolveFilename("Weekly Reviews", date, existingFiles, "UTC");
 
 			expect(result).toBe("Weekly Reviews/2025-01-15 Weekly Review (2).md");
 		});
@@ -48,7 +48,7 @@ describe("resolveFilename", () => {
 				"Weekly Reviews/2025-01-15 Weekly Review (2).md",
 			];
 
-			const result = resolveFilename("Weekly Reviews", date, existingFiles);
+			const result = resolveFilename("Weekly Reviews", date, existingFiles, "UTC");
 
 			expect(result).toBe("Weekly Reviews/2025-01-15 Weekly Review (3).md");
 		});
@@ -62,7 +62,7 @@ describe("resolveFilename", () => {
 				"Weekly Reviews/2025-01-15 Weekly Review (4).md",
 			];
 
-			const result = resolveFilename("Weekly Reviews", date, existingFiles);
+			const result = resolveFilename("Weekly Reviews", date, existingFiles, "UTC");
 
 			expect(result).toBe("Weekly Reviews/2025-01-15 Weekly Review (5).md");
 		});
@@ -76,7 +76,7 @@ describe("resolveFilename", () => {
 				"Weekly Reviews/2025-01-15 Weekly Review (4).md",
 			];
 
-			const result = resolveFilename("Weekly Reviews", date, existingFiles);
+			const result = resolveFilename("Weekly Reviews", date, existingFiles, "UTC");
 
 			// Should use the first available number
 			expect(result).toBe("Weekly Reviews/2025-01-15 Weekly Review (3).md");
@@ -88,7 +88,7 @@ describe("resolveFilename", () => {
 			const date = new Date("2025-03-05T12:00:00Z");
 			const existingFiles: string[] = [];
 
-			const result = resolveFilename("Weekly Reviews", date, existingFiles);
+			const result = resolveFilename("Weekly Reviews", date, existingFiles, "UTC");
 
 			expect(result).toBe("Weekly Reviews/2025-03-05 Weekly Review.md");
 		});
@@ -97,7 +97,7 @@ describe("resolveFilename", () => {
 			const date = new Date("2025-12-01T12:00:00Z");
 			const existingFiles: string[] = [];
 
-			const result = resolveFilename("Weekly Reviews", date, existingFiles);
+			const result = resolveFilename("Weekly Reviews", date, existingFiles, "UTC");
 
 			expect(result).toBe("Weekly Reviews/2025-12-01 Weekly Review.md");
 		});
@@ -108,7 +108,7 @@ describe("resolveFilename", () => {
 			const date = new Date("2025-01-15T12:00:00Z");
 			const existingFiles: string[] = [];
 
-			const result = resolveFilename("", date, existingFiles);
+			const result = resolveFilename("", date, existingFiles, "UTC");
 
 			expect(result).toBe("2025-01-15 Weekly Review.md");
 		});
@@ -117,7 +117,7 @@ describe("resolveFilename", () => {
 			const date = new Date("2025-01-15T12:00:00Z");
 			const existingFiles = ["Other Folder/2025-01-15 Weekly Review.md"];
 
-			const result = resolveFilename("Weekly Reviews", date, existingFiles);
+			const result = resolveFilename("Weekly Reviews", date, existingFiles, "UTC");
 
 			expect(result).toBe("Weekly Reviews/2025-01-15 Weekly Review.md");
 		});
@@ -130,9 +130,19 @@ describe("resolveFilename", () => {
 				existingFiles.push(`Weekly Reviews/2025-01-15 Weekly Review (${i}).md`);
 			}
 
-			expect(() => resolveFilename("Weekly Reviews", date, existingFiles)).toThrow(
+			expect(() => resolveFilename("Weekly Reviews", date, existingFiles, "UTC")).toThrow(
 				"Could not find available filename after 1000 attempts"
 			);
+		});
+
+		it("uses local timezone date, not UTC date", () => {
+			// 2025-01-15T23:30:00Z = Jan 16 00:30 in Europe/Berlin (CET = UTC+1)
+			const date = new Date("2025-01-15T23:30:00.000Z");
+			const existingFiles: string[] = [];
+
+			const result = resolveFilename("Weekly Reviews", date, existingFiles, "Europe/Berlin");
+
+			expect(result).toBe("Weekly Reviews/2025-01-16 Weekly Review.md");
 		});
 	});
 });

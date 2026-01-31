@@ -9,10 +9,17 @@
 export function resolveFilename(
 	outputFolder: string,
 	date: Date,
-	existingFiles: string[]
+	existingFiles: string[],
+	timezone: string
 ): string {
-	// Format date as YYYY-MM-DD
-	const dateStr = date.toISOString().split("T")[0]!;
+	// Format date as YYYY-MM-DD in the local timezone
+	const formatter = new Intl.DateTimeFormat("en-CA", {
+		timeZone: timezone,
+		year: "numeric",
+		month: "2-digit",
+		day: "2-digit",
+	});
+	const dateStr = formatter.format(date);
 
 	// Normalize output folder (remove trailing slash)
 	const folder = outputFolder.replace(/\/$/, "");

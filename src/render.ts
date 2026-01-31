@@ -44,18 +44,36 @@ model: ${metadata.model}
  * @param date - Any date
  * @returns The Monday of that week in YYYY-MM-DD format
  */
-export function getWeekStart(date: Date): string {
-	// Get the day of week (0 = Sunday, 1 = Monday, ..., 6 = Saturday)
-	const dayOfWeek = date.getUTCDay();
+export function getWeekStart(date: Date, timezone: string): string {
+	const formatter = new Intl.DateTimeFormat("en-US", {
+		timeZone: timezone,
+		year: "numeric",
+		month: "2-digit",
+		day: "2-digit",
+		weekday: "short",
+	});
 
-	// Calculate days to subtract to get to Monday
-	// If Sunday (0), go back 6 days; otherwise go back (dayOfWeek - 1) days
-	const daysToSubtract = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+	const parts = formatter.formatToParts(date);
+	const year = parseInt(parts.find((p) => p.type === "year")!.value);
+	const month = parseInt(parts.find((p) => p.type === "month")!.value);
+	const day = parseInt(parts.find((p) => p.type === "day")!.value);
+	const weekday = parts.find((p) => p.type === "weekday")!.value;
 
-	// Create new date for Monday
-	const monday = new Date(date);
-	monday.setUTCDate(monday.getUTCDate() - daysToSubtract);
+	const weekdayMap: Record<string, number> = {
+		Mon: 1,
+		Tue: 2,
+		Wed: 3,
+		Thu: 4,
+		Fri: 5,
+		Sat: 6,
+		Sun: 7,
+	};
+	const dayOfWeek = weekdayMap[weekday]!;
+	const daysToSubtract = dayOfWeek - 1;
 
-	// Format as YYYY-MM-DD
-	return monday.toISOString().split("T")[0]!;
+	const mondayLocal = new Date(year, month - 1, day - daysToSubtract);
+	const y = mondayLocal.getFullYear();
+	const m = String(mondayLocal.getMonth() + 1).padStart(2, "0");
+	const d = String(mondayLocal.getDate()).padStart(2, "0");
+	return `${y}-${m}-${d}`;
 }

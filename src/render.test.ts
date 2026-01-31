@@ -128,7 +128,7 @@ describe("getWeekStart", () => {
 	it("returns Monday for a date in the middle of the week", () => {
 		// Wednesday, January 15, 2025
 		const date = new Date("2025-01-15T12:00:00Z");
-		const result = getWeekStart(date);
+		const result = getWeekStart(date, "UTC");
 
 		expect(result).toBe("2025-01-13");
 	});
@@ -136,7 +136,7 @@ describe("getWeekStart", () => {
 	it("returns same Monday when date is Monday", () => {
 		// Monday, January 13, 2025
 		const date = new Date("2025-01-13T12:00:00Z");
-		const result = getWeekStart(date);
+		const result = getWeekStart(date, "UTC");
 
 		expect(result).toBe("2025-01-13");
 	});
@@ -144,7 +144,7 @@ describe("getWeekStart", () => {
 	it("returns Monday of current week when date is Sunday", () => {
 		// Sunday, January 19, 2025
 		const date = new Date("2025-01-19T12:00:00Z");
-		const result = getWeekStart(date);
+		const result = getWeekStart(date, "UTC");
 
 		expect(result).toBe("2025-01-13");
 	});
@@ -152,9 +152,18 @@ describe("getWeekStart", () => {
 	it("handles week crossing year boundary", () => {
 		// Thursday, January 2, 2025
 		const date = new Date("2025-01-02T12:00:00Z");
-		const result = getWeekStart(date);
+		const result = getWeekStart(date, "UTC");
 
 		// Monday is December 30, 2024
 		expect(result).toBe("2024-12-30");
+	});
+
+	it("uses local timezone day, not UTC day", () => {
+		// 2025-01-12T23:00:00Z = Monday Jan 13 00:00 CET (Europe/Berlin)
+		// UTC sees Sunday Jan 12; CET sees Monday Jan 13
+		const date = new Date("2025-01-12T23:00:00.000Z");
+		const result = getWeekStart(date, "Europe/Berlin");
+
+		expect(result).toBe("2025-01-13");
 	});
 });
