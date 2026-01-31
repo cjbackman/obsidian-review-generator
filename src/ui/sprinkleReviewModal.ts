@@ -19,14 +19,10 @@ export class SprinkleReviewModal extends Modal {
 
 		contentEl.createEl("h2", { text: "Review response" });
 
-		const container = contentEl.createDiv();
-		container.style.maxHeight = "400px";
-		container.style.overflow = "auto";
-		container.style.marginBottom = "1em";
+		const container = contentEl.createDiv({ cls: "sprinkle-review-container" });
 
 		const pre = container.createEl("pre");
 		pre.textContent = this.response;
-		pre.style.whiteSpace = "pre-wrap";
 
 		const buttonContainer = contentEl.createDiv({ cls: "modal-button-container" });
 

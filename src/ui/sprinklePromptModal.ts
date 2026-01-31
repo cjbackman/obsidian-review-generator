@@ -18,10 +18,9 @@ export class SprinklePromptModal extends Modal {
 		contentEl.createEl("h2", { text: "Sprinkle AI" });
 
 		const textarea = contentEl.createEl("textarea", {
+			cls: "sprinkle-prompt-textarea",
 			attr: { rows: "6", placeholder: "Enter your instruction..." },
 		});
-		textarea.style.width = "100%";
-		textarea.style.resize = "vertical";
 		textarea.value = this.initialValue;
 
 		const buttonContainer = contentEl.createDiv({ cls: "modal-button-container" });

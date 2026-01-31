@@ -6,3 +6,18 @@ available in the app when your plugin is enabled.
 If your plugin does not need CSS, delete this file.
 
 */
+
+.sprinkle-prompt-textarea {
+	width: 100%;
+	resize: vertical;
+}
+
+.sprinkle-review-container {
+	max-height: 400px;
+	overflow: auto;
+	margin-bottom: 1em;
+}
+
+.sprinkle-review-container pre {
+	white-space: pre-wrap;
+}
