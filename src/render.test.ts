@@ -20,19 +20,19 @@ describe("renderReviewNote", () => {
 		model: "llama3.1",
 	};
 
-	const llmResponse = `## Weekly summary
+	const llmResponse = `## Summary
 This was a productive week.
 
-## Notable work
+## Notable Work
 - Completed feature X
 - Fixed bug Y
 
-## Priorities for next week
+## Priorities for Next Week
 1. Priority A - rationale
 2. Priority B - rationale
 3. Priority C - rationale
 
-## Notes reviewed
+## Notes Reviewed
 - [[Note 1]]
 - [[Note 2]]`;
 
@@ -93,18 +93,18 @@ This was a productive week.
 		it("includes LLM response in body", () => {
 			const result = renderReviewNote(llmResponse, basePeriod, baseMetadata);
 
-			expect(result).toContain("## Weekly summary");
+			expect(result).toContain("## Summary");
 			expect(result).toContain("This was a productive week.");
-			expect(result).toContain("## Notable work");
-			expect(result).toContain("## Priorities for next week");
-			expect(result).toContain("## Notes reviewed");
+			expect(result).toContain("## Notable Work");
+			expect(result).toContain("## Priorities for Next Week");
+			expect(result).toContain("## Notes Reviewed");
 		});
 
 		it("places body after frontmatter", () => {
 			const result = renderReviewNote(llmResponse, basePeriod, baseMetadata);
 
 			const frontmatterEnd = result.indexOf("---\n", 4);
-			const bodyStart = result.indexOf("## Weekly summary");
+			const bodyStart = result.indexOf("## Summary");
 
 			expect(bodyStart).toBeGreaterThan(frontmatterEnd);
 		});

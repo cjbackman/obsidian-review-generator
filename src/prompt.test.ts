@@ -108,10 +108,10 @@ describe("buildPrompt", () => {
 		it("specifies exact section headings", () => {
 			const prompt = buildPrompt(baseEvidence, basePeriod, undefined);
 
-			expect(prompt).toContain("## Weekly summary");
-			expect(prompt).toContain("## Notable work");
-			expect(prompt).toContain("## Priorities for next week");
-			expect(prompt).toContain("## Notes reviewed");
+			expect(prompt).toContain("## Summary");
+			expect(prompt).toContain("## Notable Work");
+			expect(prompt).toContain("## Priorities for Next Week");
+			expect(prompt).toContain("## Notes Reviewed");
 		});
 	});
 
@@ -143,7 +143,7 @@ describe("buildPrompt", () => {
 
 			expect(prompt).toContain("0");
 			// Should still include instructions
-			expect(prompt).toContain("## Weekly summary");
+			expect(prompt).toContain("## Summary");
 		});
 	});
 });

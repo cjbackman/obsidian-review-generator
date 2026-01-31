@@ -49,18 +49,18 @@ Generate a weekly review based on the notes above. Your output must:
 2. Be **concise** - focus on substance, avoid filler
 3. Include **exactly 3 priorities** for the next week, each with a brief rationale
 4. Reference notes using Obsidian wikilinks where relevant: [[Note Title]]
-5. Use the following section headings **verbatim**:
+5. Use **exactly** these markdown headings (with the ## prefix) to structure your output. Do NOT use bold text for section titles — use ## headings:
 
-## Weekly summary
+## Summary
 A brief summary of what was accomplished during this period.
 
-## Notable work
+## Notable Work
 Highlight significant work, achievements, or progress made.
 
-## Priorities for next week
+## Priorities for Next Week
 List exactly 3 priorities with rationale for each.
 
-## Notes reviewed
+## Notes Reviewed
 List the notes that were reviewed for this summary.
 
 Begin your review now:`;
