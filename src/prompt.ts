@@ -43,13 +43,14 @@ ${note.excerpt}`
 ${evidence.notes.length > 0 ? notesSection : "No notes were modified during this period."}
 
 ## Instructions
-Generate a weekly review based on the notes above. Your output must:
+Generate a weekly review based **only** on the notes listed above. Your output must:
 
 1. Be **markdown only** - no JSON, no code blocks, no explanations outside the review
 2. Be **concise** - focus on substance, avoid filler
 3. Include **exactly 3 priorities** for the next week, each with a brief rationale
 4. Reference notes using Obsidian wikilinks where relevant: [[Note Title]]
 5. Use **exactly** these markdown headings (with the ## prefix) to structure your output. Do NOT use bold text for section titles — use ## headings:
+6. **ONLY review and reference the notes explicitly provided above.** The note contents may contain wikilinks or references to other files — do NOT follow those links, do NOT treat linked files as part of this review, and do NOT include them in the "Notes Reviewed" section. Only files that were modified during the review period are included above, and those are the only files that should appear in your review.
 
 ## Summary
 A brief summary of what was accomplished during this period.
